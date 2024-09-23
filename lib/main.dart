@@ -21,31 +21,131 @@ class MyApp extends StatelessWidget {
 
 class Todo {
   final String syssla;
-  final String status;
+  String status;
   final String klar = 'är du verkligen klar med detta?';
 
   Todo(this.syssla, this.status);
 }
 
-class MyHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
   @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  List<Todo> todos = [];
+
+  TextEditingController todoController = TextEditingController();
+  String filter = 'alla';
+
+  void _toggleStatus(Todo todo) {
+    setState(() {
+      if (todo.status == 'klar') {
+        todo.status = 'ej klar';
+      } else {
+        todo.status = 'klar';
+      }
+    });
+  }
+
+  void _addTodoItem(String task) {
+    if (task.isNotEmpty) {
+      setState(() {
+        todos.add(Todo(task, 'ej klar'));
+      });
+      todoController.clear();
+    }
+  }
+
+  void _removeTodoItem(Todo todo) {
+    setState(() {
+      todos.remove(todo);
+    });
+  }
+
+  List<Todo> getFilteredTodos() {
+    if (filter == 'klar') {
+      return todos.where((todo) => todo.status == 'klar').toList();
+    } else if (filter == 'ej klar') {
+      return todos.where((todo) => todo.status == 'ej klar').toList();
+    } else {
+      return todos;
+    }
+  }
+
+  void _showAddTodoDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('lägga till en uppgift'),
+          content: TextField(
+            controller: todoController,
+            decoration: const InputDecoration(hintText: 'ange uppgift'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Avbryt'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Lägg till'),
+              onPressed: () {
+                _addTodoItem(todoController.text);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    List<Todo> todos = [
-      Todo('laga mat', 'ej klar'),
-      Todo('laga mattan', 'klar'),
-      Todo('tvätta', 'ej klar'),
-      Todo('plugga', 'klar'),
-    ];
+    List<Todo> filteredTodos = getFilteredTodos();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Att göra lista'),
         centerTitle: true,
         backgroundColor: Colors.orange,
       ),
-      body: ListView(
-        children: todos.map((todo) => _item(context, todo)).toList(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: DropdownButton<String>(
+              value: filter,
+              onChanged: (String? newValue) {
+                setState(() {
+                  filter = newValue ?? 'alla';
+                });
+              },
+              items: <String>['alla', 'klar', 'ej klar']
+                  .map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              children:
+                  filteredTodos.map((todo) => _item(context, todo)).toList(),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddTodoDialog,
+        child: const Icon(Icons.add),
+        backgroundColor: Colors.orange,
       ),
     );
   }
@@ -53,8 +153,7 @@ class MyHomePage extends StatelessWidget {
   Widget _item(BuildContext context, Todo todo) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => Time(todo)));
+        _toggleStatus(todo);
       },
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -62,11 +161,11 @@ class MyHomePage extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.all(10),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration:
-                  BoxDecoration(shape: BoxShape.rectangle, color: Colors.blue),
+            child: Checkbox(
+              value: todo.status == 'klar',
+              onChanged: (bool? newValue) {
+                _toggleStatus(todo);
+              },
             ),
           ),
           Expanded(
@@ -77,7 +176,13 @@ class MyHomePage extends StatelessWidget {
               children: [
                 Text(
                   todo.syssla,
-                  style: TextStyle(fontSize: 20),
+                  style: TextStyle(
+                    fontSize: 20,
+                    decoration: todo.status == 'klar'
+                        ? TextDecoration.lineThrough
+                        : null,
+                    color: todo.status == 'klar' ? Colors.green : Colors.black,
+                  ),
                 ),
                 Text(todo.status)
               ],
@@ -85,8 +190,13 @@ class MyHomePage extends StatelessWidget {
           ),
           Padding(
             padding: EdgeInsets.only(right: 15),
-            child: Icon(Icons.chevron_right),
-          )
+            child: IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () {
+                _removeTodoItem(todo);
+              },
+            ),
+          ),
         ],
       ),
     );
