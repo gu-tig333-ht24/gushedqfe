@@ -56,6 +56,11 @@ class _MyHomePageState extends State<MyHomePage> {
         todos.add(Todo(task, 'ej klar'));
       });
       todoController.clear();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uppgiften kan inte vara tom!')
+          ),
+          );
     }
   }
 
@@ -75,37 +80,18 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _showAddTodoDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('lägga till en uppgift'),
-          content: TextField(
-            controller: todoController,
-            decoration: const InputDecoration(hintText: 'ange uppgift'),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Avbryt'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Lägg till'),
-              onPressed: () {
-                _addTodoItem(todoController.text);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
+  void _navigateToAddTodoPage() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddTodoPage()),
     );
+    
+    if (result != null && result is String) {
+      _addTodoItem(result);
+    }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     List<Todo> filteredTodos = getFilteredTodos();
     return Scaffold(
@@ -143,12 +129,14 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTodoDialog,
+        onPressed: _navigateToAddTodoPage,
         child: const Icon(Icons.add),
         backgroundColor: Colors.orange,
       ),
     );
   }
+
+
 
   Widget _item(BuildContext context, Todo todo) {
     return GestureDetector(
@@ -202,16 +190,33 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
-
-class Time extends StatelessWidget {
-  final Todo todo;
-  Time(this.todo);
-
+class AddTodoPage extends StatelessWidget {
   @override
-  Widget build(BuildContext) {
+  Widget build(BuildContext context) {
+    final TextEditingController todoController = TextEditingController();
+
     return Scaffold(
-      appBar: AppBar(title: Text(todo.syssla)),
-      body: Text(todo.klar),
+      appBar: AppBar(
+        title: const Text('Lägg till en uppgift'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: todoController,
+              decoration: const InputDecoration(hintText: 'Ange uppgift'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, todoController.text);
+              },
+              child: const Text('Lägg till'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
